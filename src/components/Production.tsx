@@ -1625,65 +1625,77 @@ export function Production() {
                 <Users size={18} className="text-blue-500" />
                 <h3 className="text-md font-black text-slate-800">الأرصدة وبطاقات كشف حساب العمال والورش</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {enrichedWorkers.map(worker => {
-                  const status = getPaymentStatus(worker);
-                  return (
-                    <div key={worker.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 hover:border-blue-100 transition-all text-right">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
-                            {worker.name[0]}
-                          </div>
-                          <div className="text-right">
-                            <h4 className="font-black text-slate-800">{worker.name}</h4>
-                            <div className={`mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block font-black ${status.color}`}>
-                              {status.label}
+              {enrichedWorkers.length === 0 ? (
+                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm text-center">
+                  <p className="text-slate-400 font-bold">لا يوجد عمال أو ورش مسجلة في النظام</p>
+                  <button 
+                    onClick={() => setIsWorkerModalOpen(true)}
+                    className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-blue-700 transition-all"
+                  >
+                    إضافة عامل جديد
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {enrichedWorkers.map(worker => {
+                    const status = getPaymentStatus(worker);
+                    return (
+                      <div key={worker.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 hover:border-blue-100 transition-all text-right">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
+                              {worker.name[0]}
+                            </div>
+                            <div className="text-right">
+                              <h4 className="font-black text-slate-800">{worker.name}</h4>
+                              <div className={`mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block font-black ${status.color}`}>
+                                {status.label}
+                              </div>
                             </div>
                           </div>
+                          <div className="text-left">
+                            <p className="text-[10px] text-slate-400 font-black uppercase">المتبقي له</p>
+                            <p className={`text-lg font-black ${worker.remainingBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                              {Math.abs(worker.remainingBalance || 0).toLocaleString()} <span className="text-[10px]">ج.م</span>
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <p className="text-[10px] text-slate-400 font-black uppercase">المتبقي له</p>
-                          <p className={`text-lg font-black ${worker.remainingBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                            {Math.abs(worker.remainingBalance || 0).toLocaleString()} <span className="text-[10px]">ج.م</span>
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => setSelectedWorkerId(worker.id)}
-                          className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
-                        >
-                          <Eye size={16} />
-                          تفاصيل كشف السجل والماليات
-                        </button>
-                        <button 
-                          onClick={() => { setPayingWorkerId(worker.id); setIsPaymentModalOpen(true); }}
-                          className="px-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all"
-                          title="صرف دفعة نقدية لشريك العمل"
-                        >
-                          <DollarSign size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleOpenEditWorker(worker)}
-                          className="px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl transition-all"
-                          title="تعديل بيانات ورشة العمل"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteWorker(worker.id)}
-                          className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all"
-                          title="حذف ورشة العمل وكل سجلاتها"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setSelectedWorkerId(worker.id)}
+                            className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Eye size={16} />
+                            تفاصيل كشف السجل والماليات
+                          </button>
+                          <button 
+                            onClick={() => { setPayingWorkerId(worker.id); setIsPaymentModalOpen(true); }}
+                            className="px-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all"
+                            title="صرف دفعة نقدية لشريك العمل"
+                          >
+                            <DollarSign size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleOpenEditWorker(worker)}
+                            className="px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl transition-all"
+                            title="تعديل بيانات ورشة العمل"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteWorker(worker.id)}
+                            className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all"
+                            title="حذف ورشة العمل وكل سجلاتها"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
