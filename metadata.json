@@ -1,0 +1,6 @@
+{
+  "name": "Order & Production Manager",
+  "description": "An elegant, premium, and easy-to-use Arabic-first ERP for tracking orders, production staff, variable tasks, finances, and inventory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
