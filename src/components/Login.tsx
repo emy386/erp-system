@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Mail, Lock, Phone, User as UserIcon, Sparkles, LogIn } from 'lucide-react';
 import { User } from '../types';
@@ -16,6 +16,7 @@ export const Login: React.FC = () => {
   // Login Form States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   
   // Register Form States
   const [regName, setRegName] = useState("");
@@ -29,6 +30,19 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const hasSupabase = !!((import.meta as any).env.VITE_SUPABASE_URL && (import.meta as any).env.VITE_SUPABASE_ANON_KEY);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('kidzy_remember_email');
+    const savedPassword = localStorage.getItem('kidzy_remember_password');
+    const savedRemember = localStorage.getItem('kidzy_remember_me') === 'true';
+    
+    if (savedEmail && savedPassword && savedRemember) {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +62,16 @@ export const Login: React.FC = () => {
           console.warn("Supabase Auth failed, checking local users database:", authError.message);
           const localMatch = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
           if (localMatch) {
+            // Save credentials if remember me is checked
+            if (rememberMe) {
+              localStorage.setItem('kidzy_remember_email', email);
+              localStorage.setItem('kidzy_remember_password', password);
+              localStorage.setItem('kidzy_remember_me', 'true');
+            } else {
+              localStorage.removeItem('kidzy_remember_email');
+              localStorage.removeItem('kidzy_remember_password');
+              localStorage.removeItem('kidzy_remember_me');
+            }
             setCurrentUser(localMatch);
             setLoading(false);
             return;
@@ -81,6 +105,16 @@ export const Login: React.FC = () => {
             jobTitle: profile?.role === "owner" ? "صاحبة البراند والمشروع 👑" : "عضو فريق كيدزي ✨"
           };
 
+          // Save credentials if remember me is checked
+          if (rememberMe) {
+            localStorage.setItem('kidzy_remember_email', email);
+            localStorage.setItem('kidzy_remember_password', password);
+            localStorage.setItem('kidzy_remember_me', 'true');
+          } else {
+            localStorage.removeItem('kidzy_remember_email');
+            localStorage.removeItem('kidzy_remember_password');
+            localStorage.removeItem('kidzy_remember_me');
+          }
           setCurrentUser(mappedUser);
           setLoading(false);
           return;
@@ -96,6 +130,16 @@ export const Login: React.FC = () => {
     setTimeout(() => {
       const match = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (match) {
+        // Save credentials if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('kidzy_remember_email', email);
+          localStorage.setItem('kidzy_remember_password', password);
+          localStorage.setItem('kidzy_remember_me', 'true');
+        } else {
+          localStorage.removeItem('kidzy_remember_email');
+          localStorage.removeItem('kidzy_remember_password');
+          localStorage.removeItem('kidzy_remember_me');
+        }
         setCurrentUser(match);
       } else {
         setError("عفواً، البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى مراجعتها والمحاولة مرة أخرى.");
@@ -214,7 +258,7 @@ export const Login: React.FC = () => {
             K
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-normal">مدير كيدزي للإنتاج والورش 🚀</h2>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-normal">سيستم كيدزي للمبيعات 🚀</h2>
             <p className="mt-2 text-xs text-slate-400 font-bold max-w-xs mx-auto leading-relaxed">
               {isRegister 
                 ? "ابدئي مشروعكِ الآن وسجلي كصاحبة للبراند لمتابعة الأوردرات والتصنيع والأرباح ✨" 
@@ -365,7 +409,7 @@ export const Login: React.FC = () => {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
-              <div className="flex justify-start pt-1">
+              <div className="flex justify-start pt-1 flex-col gap-2">
                 <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 select-none cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -374,6 +418,15 @@ export const Login: React.FC = () => {
                     className="rounded-sm accent-blue-600" 
                   />
                   <span>عرض كلمة المرور</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 select-none cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe} 
+                    onChange={() => setRememberMe(!rememberMe)}
+                    className="rounded-sm accent-blue-600" 
+                  />
+                  <span>تذكرني (حفظ بيانات الدخول)</span>
                 </label>
               </div>
             </div>
