@@ -122,7 +122,7 @@ export function Production() {
 
   const handleOpenEditWorker = (worker: Worker) => {
     setEditingWorker(worker);
-    setEditWorkerName(worker.name);
+    setEditWorkerName(worker.name || '');
     setEditWorkerPhone(worker.phone || '');
     setEditWorkerRole(worker.role || 'cutting');
     setIsEditWorkerModalOpen(true);
@@ -156,7 +156,7 @@ export function Production() {
       setConfirmDeleteState({
         isOpen: true,
         title: "تأكيد حذف العامل والسجلات ⚠️",
-        message: `هذا العامل "${worker.name}" لديه ${workerIntakes.length} مرحلة إنتاج مسجلة باسمه. هل أنت متأكد من حذفه نهائياً؟ سيتم أيضاً حذف جميع مراحل التشغيل الخاصة به من السجل ومن كشف الحساب وتعديل المخزون!`,
+        message: `هذا العامل "${worker.name || 'بدون اسم'}" لديه ${workerIntakes.length} مرحلة إنتاج مسجلة باسمه. هل أنت متأكد من حذفه نهائياً؟ سيتم أيضاً حذف جميع مراحل التشغيل الخاصة به من السجل ومن كشف الحساب وتعديل المخزون!`,
         onConfirm: () => {
           let updatedProducts = [...products];
           let updatedMovements = [...inventoryMovements];
@@ -197,7 +197,7 @@ export function Production() {
       setConfirmDeleteState({
         isOpen: true,
         title: "حذف العامل / ورشة العمل ❌",
-        message: `هل أنت متأكد من حذف العامل/الورشة "${worker.name}"؟`,
+        message: `هل أنت متأكد من حذف العامل/الورشة "${worker.name || 'بدون اسم'}"؟`,
         onConfirm: () => {
           setWorkers(workers.filter(w => w.id !== workerId));
           if (selectedWorkerId === workerId) {
@@ -643,7 +643,7 @@ export function Production() {
           id: `INTK-${Date.now()}-${Math.random()}`,
           receiptId,
           workerId: worker.id,
-          workerName: worker.name,
+          workerName: worker.name || 'بدون اسم',
           date: intakeDate,
           productId: product.id,
           productName: product.name,
@@ -715,7 +715,7 @@ export function Production() {
       id: `INTK-${Date.now()}-${Math.random()}`,
       receiptId,
       workerId: worker.id,
-      workerName: worker.name,
+      workerName: worker.name || 'بدون اسم',
       date: pkgDate,
       productId: '',
       productName: 'تغليف عام',
@@ -1009,7 +1009,7 @@ export function Production() {
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-right">
-              <h2 className="text-2xl font-black text-slate-800">{selectedWorker.name}</h2>
+              <h2 className="text-2xl font-black text-slate-800">{selectedWorker.name || 'بدون اسم'}</h2>
               <p className="text-slate-400 font-bold text-sm">حسابات وسجل الورشة المالي</p>
             </div>
             <button 
