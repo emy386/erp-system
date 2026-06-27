@@ -83,7 +83,7 @@ function AppContent() {
         {/* Dynamic Client Routing Pages wrapper */}
         <main className="p-4 md:p-8 flex-1 overflow-y-auto w-full max-w-7xl mx-auto">
           <Routes>
-            <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
+            <Route path="/" element={<ProtectedRoute permission="dashboard"><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute permission="orders"><PageTransition><Orders /></PageTransition></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute permission="inventory"><PageTransition><Inventory /></PageTransition></ProtectedRoute>} />
             <Route path="/production" element={<ProtectedRoute permission="production"><PageTransition><Production /></PageTransition></ProtectedRoute>} />
