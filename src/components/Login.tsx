@@ -85,7 +85,7 @@ export const Login: React.FC = () => {
             .from("profiles")
             .select("*")
             .eq("id", data.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError) {
             console.warn("Auth user exists but profiles table load failed, building custom session from authentication metadata:", profileError.message);
