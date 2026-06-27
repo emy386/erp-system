@@ -426,6 +426,12 @@ export function Production() {
   const enrichedWorkers = useMemo(() => {
     try {
       return workers.map(w => {
+        // Ensure worker has required properties
+        if (!w || !w.id) {
+          console.error('Invalid worker data:', w);
+          return null;
+        }
+
         let list = productionIntakes.filter(i => i.workerId === w.id);
         let payments = Array.isArray(w.payments) ? w.payments : [];
 
@@ -458,12 +464,13 @@ export function Production() {
         const totalFinishedItems = list.reduce((sum, i) => sum + (i.quantity || 0), 0);
         return {
           ...w,
+          name: w.name || 'بدون اسم',
           totalOwed,
           totalPaid,
           remainingBalance,
           totalFinishedItems
         };
-      });
+      }).filter(w => w !== null);
     } catch (error) {
       console.error('Error processing enriched workers:', error);
       return [];
@@ -1665,10 +1672,10 @@ export function Production() {
                                 <div className="flex justify-between items-start">
                                   <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
-                                      {worker.name[0]}
+                                      {worker.name ? worker.name[0] : '?'}
                                     </div>
                                     <div className="text-right">
-                                      <h4 className="font-black text-slate-800">{worker.name}</h4>
+                                      <h4 className="font-black text-slate-800">{worker.name || 'بدون اسم'}</h4>
                                       <div className={`mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block font-black ${status.color}`}>
                                         {status.label}
                                       </div>
