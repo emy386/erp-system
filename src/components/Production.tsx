@@ -424,49 +424,67 @@ export function Production() {
   }, [productionIntakes, packagingSearchQuery, packagingStartDate, packagingEndDate, packagingWorkerFilter]);
 
   const enrichedWorkers = useMemo(() => {
-    return workers.map(w => {
-      let list = productionIntakes.filter(i => i.workerId === w.id);
-      let payments = w.payments || [];
+    try {
+      return workers.map(w => {
+        let list = productionIntakes.filter(i => i.workerId === w.id);
+        let payments = Array.isArray(w.payments) ? w.payments : [];
 
-      if (accountsStartDate) {
-        list = list.filter(i => i.date >= accountsStartDate);
-        payments = payments.filter(p => {
-          const pDate = p.date ? p.date.split('T')[0] : '';
-          return pDate >= accountsStartDate;
-        });
-      }
-      if (accountsEndDate) {
-        list = list.filter(i => i.date <= accountsEndDate);
-        payments = payments.filter(p => {
-          const pDate = p.date ? p.date.split('T')[0] : '';
-          return pDate <= accountsEndDate;
-        });
-      }
+        if (accountsStartDate) {
+          list = list.filter(i => i.date >= accountsStartDate);
+          payments = payments.filter(p => {
+            try {
+              const pDate = p.date && typeof p.date === 'string' ? p.date.split('T')[0] : '';
+              return pDate >= accountsStartDate;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
+        if (accountsEndDate) {
+          list = list.filter(i => i.date <= accountsEndDate);
+          payments = payments.filter(p => {
+            try {
+              const pDate = p.date && typeof p.date === 'string' ? p.date.split('T')[0] : '';
+              return pDate <= accountsEndDate;
+            } catch (e) {
+              return false;
+            }
+          });
+        }
 
-      const totalOwed = list.reduce((sum, i) => sum + (i.totalCost || 0), 0);
-      const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const remainingBalance = totalOwed - totalPaid;
-      const totalFinishedItems = list.reduce((sum, i) => sum + (i.quantity || 0), 0);
-      return {
-        ...w,
-        totalOwed,
-        totalPaid,
-        remainingBalance,
-        totalFinishedItems
-      };
-    });
+        const totalOwed = list.reduce((sum, i) => sum + (i.totalCost || 0), 0);
+        const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const remainingBalance = totalOwed - totalPaid;
+        const totalFinishedItems = list.reduce((sum, i) => sum + (i.quantity || 0), 0);
+        return {
+          ...w,
+          totalOwed,
+          totalPaid,
+          remainingBalance,
+          totalFinishedItems
+        };
+      });
+    } catch (error) {
+      console.error('Error processing enriched workers:', error);
+      return [];
+    }
   }, [workers, productionIntakes, accountsStartDate, accountsEndDate]);
 
   const displayedWorkers = useMemo(() => {
-    let list = enrichedWorkers;
-    if (accountsWorkerFilter && accountsWorkerFilter !== 'all') {
-      list = list.filter(w => w.id === accountsWorkerFilter);
+    try {
+      let list = enrichedWorkers;
+      if (accountsWorkerFilter && accountsWorkerFilter !== 'all') {
+        list = list.filter(w => w.id === accountsWorkerFilter);
+      }
+      if (accountsSearchQuery.trim() !== '') {
+        const q = accountsSearchQuery.toLowerCase();
+        list = list.filter(w => w.name && w.name.toLowerCase().includes(q));
+      }
+      return list;
+    } catch (error) {
+      console.error('Error filtering displayed workers:', error);
+      return [];
     }
-    if (accountsSearchQuery.trim() !== '') {
-      const q = accountsSearchQuery.toLowerCase();
-      list = list.filter(w => w.name.toLowerCase().includes(q));
-    }
-    return list;
   }, [enrichedWorkers, accountsWorkerFilter, accountsSearchQuery]);
 
   // Dashboard Stats
@@ -1510,193 +1528,208 @@ export function Production() {
         {/* ==================== TAB 2: FINANCIAL ACCOUNTS (الحسابات والماليات للورش) ==================== */}
         {activeTab === 'accounts' && (
           <div className="space-y-6">
-            
-            {/* Accounts Tab Filter Bar */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-              <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder="ابحث باسم العامل أو الورشة..."
-                    className="w-full bg-slate-50 border-none rounded-2xl py-3 pr-11 pl-4 text-sm font-bold focus:ring-2 focus:ring-blue-105 transition-all text-right"
-                    value={accountsSearchQuery}
-                    onChange={(e) => setAccountsSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                {/* Worker Select Filter */}
-                <div className="text-right shrink-0">
-                  <select
-                    value={accountsWorkerFilter}
-                    onChange={(e) => setAccountsWorkerFilter(e.target.value)}
-                    className="bg-slate-50 border-none rounded-2xl py-3 px-4 text-xs font-black text-slate-700 text-right outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer min-w-[170px] h-full"
-                  >
-                    <option value="all">كل العمال والمصانع</option>
-                    {workers.map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Inline Date Range Filters */}
-                <div className="flex items-center gap-1 bg-slate-50 px-3 py-2 rounded-2xl self-stretch lg:self-auto">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400 font-black">من:</span>
-                    <input
-                      type="date"
-                      value={accountsStartDate}
-                      onChange={(e) => setAccountsStartDate(e.target.value)}
-                      className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 outline-none w-28 focus:ring-0 text-right font-sans"
-                    />
-                  </div>
-                  <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400 font-black">إلى:</span>
-                    <input
-                      type="date"
-                      value={accountsEndDate}
-                      onChange={(e) => setAccountsEndDate(e.target.value)}
-                      className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 outline-none w-28 focus:ring-0 text-right font-sans"
-                    />
-                  </div>
-                  {(accountsStartDate || accountsEndDate) && (
-                    <button 
-                      onClick={() => { setAccountsStartDate(''); setAccountsEndDate(''); }}
-                      className="text-xs font-black text-red-500 hover:text-red-700 mr-2 bg-red-50 px-2 py-0.5 rounded-lg"
-                    >
-                      مسح ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Performance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/40 p-5 rounded-[2rem] border border-indigo-100/50 shadow-sm text-right flex flex-col justify-between">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-[11px] text-indigo-500 font-black uppercase">إجمالي قيمة تشغيل الإنتاج</p>
-                  <div className="w-10 h-10 bg-indigo-500/10 text-indigo-700 rounded-xl flex items-center justify-center">
-                    <TrendingUp size={20} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-slate-800">
-                    {displayedWorkers.reduce((sum, item) => sum + (item.totalOwed || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
-                  </h3>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/40 p-5 rounded-[2rem] border border-emerald-100/50 shadow-sm text-right flex flex-col justify-between">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-[11px] text-emerald-500 font-black uppercase">إجمالي المبالغ المصروفة</p>
-                  <div className="w-10 h-10 bg-emerald-500/10 text-emerald-700 rounded-xl flex items-center justify-center">
-                    <CheckCircle2 size={20} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-slate-800">
-                    {displayedWorkers.reduce((sum, item) => sum + (item.totalPaid || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
-                  </h3>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-red-50 to-red-100/40 p-5 rounded-[2rem] border border-red-100/50 shadow-sm text-right flex flex-col justify-between">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-[11px] text-red-500 font-black uppercase">إجمالي المتبقي المستحق</p>
-                  <div className="w-10 h-10 bg-red-500/10 text-red-700 rounded-xl flex items-center justify-center">
-                    <DollarSign size={20} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-slate-800">
-                    {displayedWorkers.reduce((sum, item) => sum + (item.remainingBalance || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
-                  </h3>
-                </div>
-              </div>
-            </div>
-
-
-
-            {/* General Workers Balances lists with Profile view link */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 justify-start">
-                <Users size={18} className="text-blue-500" />
-                <h3 className="text-md font-black text-slate-800">الأرصدة وبطاقات كشف حساب العمال والورش</h3>
-              </div>
-              {enrichedWorkers.length === 0 ? (
-                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm text-center">
-                  <p className="text-slate-400 font-bold">لا يوجد عمال أو ورش مسجلة في النظام</p>
-                  <button 
-                    onClick={() => setIsWorkerModalOpen(true)}
-                    className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-blue-700 transition-all"
-                  >
-                    إضافة عامل جديد
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {enrichedWorkers.map(worker => {
-                    const status = getPaymentStatus(worker);
-                    return (
-                      <div key={worker.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 hover:border-blue-100 transition-all text-right">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
-                              {worker.name[0]}
-                            </div>
-                            <div className="text-right">
-                              <h4 className="font-black text-slate-800">{worker.name}</h4>
-                              <div className={`mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block font-black ${status.color}`}>
-                                {status.label}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-[10px] text-slate-400 font-black uppercase">المتبقي له</p>
-                            <p className={`text-lg font-black ${worker.remainingBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                              {Math.abs(worker.remainingBalance || 0).toLocaleString()} <span className="text-[10px]">ج.م</span>
-                            </p>
-                          </div>
+            {(() => {
+              try {
+                return (
+                  <>
+                    {/* Accounts Tab Filter Bar */}
+                    <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+                      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+                        <div className="relative flex-1">
+                          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                          <input
+                            type="text"
+                            placeholder="ابحث باسم العامل أو الورشة..."
+                            className="w-full bg-slate-50 border-none rounded-2xl py-3 pr-11 pl-4 text-sm font-bold focus:ring-2 focus:ring-blue-105 transition-all text-right"
+                            value={accountsSearchQuery}
+                            onChange={(e) => setAccountsSearchQuery(e.target.value)}
+                          />
                         </div>
 
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => setSelectedWorkerId(worker.id)}
-                            className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                        {/* Worker Select Filter */}
+                        <div className="text-right shrink-0">
+                          <select
+                            value={accountsWorkerFilter}
+                            onChange={(e) => setAccountsWorkerFilter(e.target.value)}
+                            className="bg-slate-50 border-none rounded-2xl py-3 px-4 text-xs font-black text-slate-700 text-right outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer min-w-[170px] h-full"
                           >
-                            <Eye size={16} />
-                            تفاصيل كشف السجل والماليات
-                          </button>
-                          <button 
-                            onClick={() => { setPayingWorkerId(worker.id); setIsPaymentModalOpen(true); }}
-                            className="px-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all"
-                            title="صرف دفعة نقدية لشريك العمل"
-                          >
-                            <DollarSign size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleOpenEditWorker(worker)}
-                            className="px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl transition-all"
-                            title="تعديل بيانات ورشة العمل"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteWorker(worker.id)}
-                            className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all"
-                            title="حذف ورشة العمل وكل سجلاتها"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            <option value="all">كل العمال والمصانع</option>
+                            {workers.map(w => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Inline Date Range Filters */}
+                        <div className="flex items-center gap-1 bg-slate-50 px-3 py-2 rounded-2xl self-stretch lg:self-auto">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 font-black">من:</span>
+                            <input
+                              type="date"
+                              value={accountsStartDate}
+                              onChange={(e) => setAccountsStartDate(e.target.value)}
+                              className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 outline-none w-28 focus:ring-0 text-right font-sans"
+                            />
+                          </div>
+                          <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 font-black">إلى:</span>
+                            <input
+                              type="date"
+                              value={accountsEndDate}
+                              onChange={(e) => setAccountsEndDate(e.target.value)}
+                              className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 outline-none w-28 focus:ring-0 text-right font-sans"
+                            />
+                          </div>
+                          {(accountsStartDate || accountsEndDate) && (
+                            <button 
+                              onClick={() => { setAccountsStartDate(''); setAccountsEndDate(''); }}
+                              className="text-xs font-black text-red-500 hover:text-red-700 mr-2 bg-red-50 px-2 py-0.5 rounded-lg"
+                            >
+                              مسح ✕
+                            </button>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                    </div>
+
+                    {/* Financial Performance Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/40 p-5 rounded-[2rem] border border-indigo-100/50 shadow-sm text-right flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-3">
+                          <p className="text-[11px] text-indigo-500 font-black uppercase">إجمالي قيمة تشغيل الإنتاج</p>
+                          <div className="w-10 h-10 bg-indigo-500/10 text-indigo-700 rounded-xl flex items-center justify-center">
+                            <TrendingUp size={20} />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-800">
+                            {displayedWorkers.reduce((sum, item) => sum + (item.totalOwed || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/40 p-5 rounded-[2rem] border border-emerald-100/50 shadow-sm text-right flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-3">
+                          <p className="text-[11px] text-emerald-500 font-black uppercase">إجمالي المبالغ المصروفة</p>
+                          <div className="w-10 h-10 bg-emerald-500/10 text-emerald-700 rounded-xl flex items-center justify-center">
+                            <CheckCircle2 size={20} />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-800">
+                            {displayedWorkers.reduce((sum, item) => sum + (item.totalPaid || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-red-50 to-red-100/40 p-5 rounded-[2rem] border border-red-100/50 shadow-sm text-right flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-3">
+                          <p className="text-[11px] text-red-500 font-black uppercase">إجمالي المتبقي المستحق</p>
+                          <div className="w-10 h-10 bg-red-500/10 text-red-700 rounded-xl flex items-center justify-center">
+                            <DollarSign size={20} />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-800">
+                            {displayedWorkers.reduce((sum, item) => sum + (item.remainingBalance || 0), 0).toLocaleString()} <span className="text-xs">ج.م</span>
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+
+
+
+                    {/* General Workers Balances lists with Profile view link */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 justify-start">
+                        <Users size={18} className="text-blue-500" />
+                        <h3 className="text-md font-black text-slate-800">الأرصدة وبطاقات كشف حساب العمال والورش</h3>
+                      </div>
+                      {enrichedWorkers.length === 0 ? (
+                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm text-center">
+                          <p className="text-slate-400 font-bold">لا يوجد عمال أو ورش مسجلة في النظام</p>
+                          <button 
+                            onClick={() => setIsWorkerModalOpen(true)}
+                            className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-blue-700 transition-all"
+                          >
+                            إضافة عامل جديد
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {enrichedWorkers.map(worker => {
+                            const status = getPaymentStatus(worker);
+                            return (
+                              <div key={worker.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 hover:border-blue-100 transition-all text-right">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
+                                      {worker.name[0]}
+                                    </div>
+                                    <div className="text-right">
+                                      <h4 className="font-black text-slate-800">{worker.name}</h4>
+                                      <div className={`mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block font-black ${status.color}`}>
+                                        {status.label}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase">المتبقي له</p>
+                                    <p className={`text-lg font-black ${worker.remainingBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                      {Math.abs(worker.remainingBalance || 0).toLocaleString()} <span className="text-[10px]">ج.م</span>
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={() => setSelectedWorkerId(worker.id)}
+                                    className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                                  >
+                                    <Eye size={16} />
+                                    تفاصيل كشف السجل والماليات
+                                  </button>
+                                  <button 
+                                    onClick={() => { setPayingWorkerId(worker.id); setIsPaymentModalOpen(true); }}
+                                    className="px-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all"
+                                    title="صرف دفعة نقدية لشريك العمل"
+                                  >
+                                    <DollarSign size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleOpenEditWorker(worker)}
+                                    className="px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl transition-all"
+                                    title="تعديل بيانات ورشة العمل"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteWorker(worker.id)}
+                                    className="px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all"
+                                    title="حذف ورشة العمل وكل سجلاتها"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              } catch (error) {
+                console.error('Error rendering accounts tab:', error);
+                return (
+                  <div className="bg-red-50 p-8 rounded-[2rem] border border-red-100 shadow-sm text-center">
+                    <p className="text-red-600 font-bold">حدث خطأ أثناء عرض حسابات العمال</p>
+                    <p className="text-red-400 text-sm mt-2">يرجى تحديث الصفحة والمحاولة مرة أخرى</p>
+                  </div>
+                );
+              }
+            })()}
           </div>
         )}
 
