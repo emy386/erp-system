@@ -139,8 +139,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSyncMessage('جاري الاتصال بـ Supabase وشحن الجداول...');
       try {
         const tables = [
-          "erp_products", "erp_orders", "erp_transactions", "profiles", 
-          "erp_workers", "erp_production_intakes", "erp_inventory_movements", "erp_general_expenses"
+          "products", "orders", "transactions", "users", 
+          "workers", "production_intakes", "inventory_movements", "general_expenses"
         ];
 
         const fetchTable = async (tableName: string) => {
@@ -166,11 +166,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setOrders(data);
             } else if (tableName === "transactions") {
               setTransactions(data);
-            } else if (tableName === "profiles") {
+            } else if (tableName === "users") {
               const normalizedUsers = data.map((u: any) => ({
                 ...u,
-                staffRoles: u.staff_roles || [],
-                variableTasks: u.variable_tasks || [],
+                staffRoles: u.staffRoles || [],
+                variableTasks: u.variableTasks || [],
                 permissions: u.permissions || []
               }));
               setUsers(normalizedUsers);
@@ -282,14 +282,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const debounceTimer = setTimeout(() => {
-      syncTable("erp_products", products);
-      syncTable("erp_orders", orders);
-      syncTable("erp_transactions", transactions);
-      syncTable("profiles", users);
-      syncTable("erp_workers", workers);
-      syncTable("erp_production_intakes", productionIntakes);
-      syncTable("erp_inventory_movements", inventoryMovements);
-      syncTable("erp_general_expenses", generalExpenses);
+      syncTable("products", products);
+      syncTable("orders", orders);
+      syncTable("transactions", transactions);
+      syncTable("users", users);
+      syncTable("workers", workers);
+      syncTable("production_intakes", productionIntakes);
+      syncTable("inventory_movements", inventoryMovements);
+      syncTable("general_expenses", generalExpenses);
     }, 1500);
 
     return () => clearTimeout(debounceTimer);
@@ -330,3 +330,6 @@ export const useApp = () => {
   }
   return context;
 };
+
+
+
